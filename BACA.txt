@@ -1,0 +1,280 @@
+================================================================
+  PENJELASAN LENGKAP - SISTEM RENTAL KENDARAAN (Kelompok 4)
+================================================================
+
+----------------------------------------------------------------
+  STRUKTUR FILE (cuma 3 file inti)
+----------------------------------------------------------------
+
+1. app/Models/RentalCache.php  --> semua class / model + logika data
+2. routes/web.php              --> semua route + logika controller
+3. resources/views/app.blade.php --> semua tampilan (HTML/Blade)
+
+
+================================================================
+  CARA DATA DISIMPAN - PAKAI LARAVEL CACHE
+================================================================
+
+Aplikasi ini TIDAK pakai database (MySQL/SQLite dll).
+Gantinya pakai LARAVEL CACHE dengan driver "file".
+
+Artinya:
+  - Data disimpan sebagai file di: storage/framework/cache/data/
+  - Format isinya: array PHP yang di-serialize
+  - Disimpan pakai Cache::forever(key, data) --> tidak pernah expire
+  - Dibaca pakai Cache::get(key, [])          --> kalau kosong return []
+  - Dihapus pakai Cache::forget(key)
+
+Ada 4 "tabel" (key cache):
+  - "kendaraan"   --> menyimpan array semua kendaraan
+  - "pelanggan"   --> menyimpan array semua pelanggan
+  - "transaksi"   --> menyimpan array semua transaksi sewa
+  - "pengembalian"--> menyimpan array semua pengembalian
+
+Setiap record adalah array asosiatif, contoh satu kendaraan:
+  [
+    'id_kendaraan'  => 1,
+    'nama_kendaraan'=> 'Avanza',
+    'jenis'         => 'Mobil',
+    'merk'          => 'Toyota',
+    'harga_sewa'    => 350000,
+    'status'        => 'Tersedia'
+  ]
+
+ID di-generate manual: ambil ID terbesar yang ada, lalu +1.
+(Tidak ada database sequence / auto_increment)
+
+CATATAN PENTING:
+  Data akan HILANG kalau "php artisan cache:clear" dijalankan,
+  atau kalau folder storage/framework/cache/ dihapus.
+  Data TIDAK hilang hanya karena server restart.
+
+
+================================================================
+  PENJELASAN CLASS & METHOD
+================================================================
+
+----------------------------------------------------------------
+  CLASS Kendaraan
+----------------------------------------------------------------
+Menyimpan data armada kendaraan yang bisa disewa.
+
+Atribut tiap record:
+  id_kendaraan   --> ID unik (angka, auto-increment manual)
+  nama_kendaraan --> nama kendaraan, misal "Avanza"
+  jenis          --> "Mobil" atau "Motor"
+  merk           --> merek, misal "Toyota"
+  harga_sewa     --> harga per hari (dalam rupiah)
+  status         --> "Tersedia" atau "Disewa"
+
+Method:
+
+  lihatKendaraan()
+    --> Ambil semua kendaraan dari cache.
+    --> Return: array semua kendaraan.
+
+  find(id)
+    --> Cari satu kendaraan berdasarkan ID.
+    --> Return: array data kendaraan, atau null kalau tidak ketemu.
+
+  tambah(data)
+    --> Tambah kendaraan baru.
+    --> Generate ID otomatis, set status default "Tersedia".
+    --> Simpan ke cache.
+
+  update(id, data)
+    --> Update data kendaraan (nama, jenis, harga, dll).
+    --> Pakai array_merge: data lama + data baru, ID tidak berubah.
+    --> Return: true kalau berhasil, false kalau ID tidak ketemu.
+
+  updateStatus(id, status)
+    --> Khusus ubah status ("Tersedia" / "Disewa").
+    --> Dipanggil otomatis oleh class Transaksi dan Pengembalian.
+
+  cekKetersediaan(id)
+    --> Cek apakah kendaraan bisa disewa.
+    --> Return: true kalau status == "Tersedia", false kalau tidak.
+
+  hapus(id)
+    --> Hapus kendaraan dari list.
+    --> Pakai array_filter untuk buang yang ID-nya cocok.
+
+  seedIfEmpty()
+    --> Isi data dummy (6 kendaraan awal) kalau cache masih kosong.
+    --> Dipanggil sekali di awal routes/web.php.
+    --> Data: Avanza, Brio, Xenia, Vario 160, Nmax, PCX 160.
+
+
+----------------------------------------------------------------
+  CLASS Pelanggan
+----------------------------------------------------------------
+Menyimpan data pelanggan yang mendaftar untuk menyewa.
+
+Atribut tiap record:
+  id_pelanggan --> ID unik
+  nama         --> nama lengkap pelanggan
+  nik          --> Nomor Induk Kependudukan, 16 digit, UNIK
+  no_hp        --> nomor HP (10-15 digit angka)
+  alamat       --> alamat lengkap
+
+Method:
+
+  lihatData()
+    --> Ambil semua pelanggan dari cache.
+
+  find(id)
+    --> Cari pelanggan berdasarkan ID.
+
+  inputData(data)
+    --> Daftarkan pelanggan baru.
+    --> Validasi: NIK harus unik (cek loop seluruh data dulu).
+    --> Kalau NIK sudah ada, lempar Exception (error ditampilkan di form).
+
+  updateData(id, data)
+    --> Update data pelanggan.
+    --> Validasi: NIK baru tidak boleh sama dengan pelanggan LAIN.
+    --> (boleh sama dengan diri sendiri kalau tidak diubah)
+
+  hapus(id)
+    --> Hapus pelanggan dari list.
+
+  seedIfEmpty()
+    --> Isi 2 pelanggan dummy (Budi Santoso, Siti Aminah).
+
+
+----------------------------------------------------------------
+  CLASS Transaksi
+----------------------------------------------------------------
+Menyimpan data sewa kendaraan oleh pelanggan.
+
+Atribut tiap record:
+  id_transaksi      --> ID unik
+  id_pelanggan      --> relasi ke Pelanggan
+  id_kendaraan      --> relasi ke Kendaraan
+  tgl_sewa          --> tanggal mulai sewa (format: YYYY-MM-DD)
+  lama_sewa         --> berapa hari sewa (angka)
+  total_bayar       --> total biaya = harga_sewa x lama_sewa
+  status_pembayaran --> "Belum Lunas" atau "Lunas"
+
+Method:
+
+  semua()
+    --> Ambil semua transaksi, diurutkan terbaru di atas (sort by ID desc).
+
+  find(id)
+    --> Cari satu transaksi berdasarkan ID.
+
+  hitungBiaya(hargaSewa, lamaSewa)
+    --> Rumus: hargaSewa * lamaSewa
+    --> Contoh: Avanza 350.000 x 3 hari = 1.050.000
+
+  simpanTransaksi(data)
+    --> Proses sewa baru. Urutannya:
+        1. Validasi pelanggan ada
+        2. Validasi kendaraan ada
+        3. Cek ketersediaan kendaraan (cekKetersediaan)
+        4. Hitung total_bayar pakai hitungBiaya()
+        5. Buat record transaksi dengan status "Belum Lunas"
+        6. Simpan ke cache
+        7. Update status kendaraan jadi "Disewa"
+    --> Kalau kendaraan sudah disewa, lempar Exception.
+
+  prosesPembayaran(id)
+    --> Ubah status_pembayaran dari "Belum Lunas" jadi "Lunas".
+    --> Kalau sudah lunas, lempar Exception (tidak bisa bayar dua kali).
+
+  hapus(id)
+    --> Hapus transaksi.
+    --> Sebelum hapus, kembalikan status kendaraan jadi "Tersedia".
+
+
+----------------------------------------------------------------
+  CLASS Pengembalian
+----------------------------------------------------------------
+Menyimpan data pengembalian kendaraan setelah masa sewa selesai.
+
+Atribut tiap record:
+  id_pengembalian --> ID unik
+  id_transaksi    --> relasi ke Transaksi
+  tgl_kembali     --> tanggal kendaraan dikembalikan
+  denda           --> denda keterlambatan (Rp 50.000/hari telat)
+  total_bayar     --> total_bayar transaksi + denda
+
+Konstanta:
+  TARIF_DENDA_PER_HARI = 50000 (Rp 50.000 per hari telat)
+
+Method:
+
+  semua()
+    --> Ambil semua pengembalian, diurutkan terbaru di atas.
+
+  hitungDenda(tglSewa, lamaSewa, tglKembali)
+    --> Hitung berapa hari telat, lalu kalikan tarif denda.
+    --> Batas akhir sewa = tglSewa + lamaSewa (dalam detik: x 86400)
+    --> Hari telat = (tglKembali - batas) / 86400, minimal 0
+    --> Contoh: sewa 3 hari mulai 1 Jan, batas kembali 4 Jan.
+                Dikembalikan 6 Jan = telat 2 hari = denda 100.000.
+
+  simpanPengembalian(data)
+    --> Proses pengembalian. Urutannya:
+        1. Cek transaksi ada
+        2. Cek transaksi sudah "Lunas" (wajib lunas dulu)
+        3. Cek transaksi belum pernah dikembalikan (no double return)
+        4. Validasi tgl_kembali tidak sebelum tgl_sewa
+        5. Hitung denda pakai hitungDenda()
+        6. Simpan record pengembalian ke cache
+        7. Update status kendaraan jadi "Tersedia" (updateStatusKendaraan)
+
+  hapus(id)
+    --> Hapus data pengembalian.
+    --> CATATAN: status kendaraan TIDAK dikembalikan ke "Disewa"
+                 (penghapusan pengembalian cuma hapus recordnya saja).
+
+
+================================================================
+  ALUR PENGGUNAAN SISTEM (dari awal sampai selesai)
+================================================================
+
+1. DAFTAR PELANGGAN
+   --> Masuk menu Pelanggan > Tambah
+   --> Isi nama, NIK (16 digit), no HP, alamat
+   --> NIK harus unik, belum pernah terdaftar
+
+2. SEWA KENDARAAN
+   --> Masuk menu Transaksi > Sewa Baru
+   --> Pilih pelanggan, pilih kendaraan (hanya yang "Tersedia")
+   --> Isi tanggal sewa dan berapa hari
+   --> Total bayar dihitung otomatis
+   --> Setelah disimpan, status kendaraan otomatis jadi "Disewa"
+   --> Status pembayaran awal: "Belum Lunas"
+
+3. PROSES PEMBAYARAN
+   --> Di halaman daftar transaksi, klik tombol "Bayar"
+   --> Status berubah jadi "Lunas"
+
+4. PENGEMBALIAN
+   --> Masuk menu Pengembalian > Tambah
+   --> Pilih transaksi (hanya yang sudah "Lunas")
+   --> Isi tanggal kembali
+   --> Kalau telat, denda otomatis dihitung
+   --> Setelah disimpan, status kendaraan otomatis kembali "Tersedia"
+
+5. RESET DATA (tombol di footer)
+   --> Hapus semua cache (kendaraan, pelanggan, transaksi, pengembalian)
+   --> Data dummy awal di-load ulang
+   --> Berguna untuk testing / demo ulang
+
+
+================================================================
+  KETERBATASAN SISTEM
+================================================================
+
+- Data hilang kalau cache di-clear (php artisan cache:clear)
+- Tidak ada login / autentikasi user
+- Tidak ada relasi antar tabel yang di-enforce (kalau pelanggan
+  dihapus, transaksinya tidak ikut terhapus)
+- Penghapusan pengembalian tidak mengembalikan status kendaraan
+- Tidak cocok untuk production / data besar, hanya untuk demo/tugas
+
+
+================================================================
