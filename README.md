@@ -81,7 +81,7 @@ Sistem Rental Kendaraan berbasis Laravel + PHP + MySQL yang digunakan untuk meng
 
 ## 🌐 Deployment
 
-Aplikasi telah di-deploy menggunakan Railway dan dapat diakses secara online.
+https://rental-kendaraan.up.railway.app/
 
 ---
 
