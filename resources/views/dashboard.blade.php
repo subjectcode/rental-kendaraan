@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<h1 class="text-3xl font-bold text-slate-800 mb-1">Dashboard</h1>
+<h1 class="text-3xl font-bold text-slate-800 mb-1"><i class="fas fa-car mr-2"></i>Dashboard</h1>
 <p class="text-slate-500 mb-6">Ringkasan sistem rental kendaraan</p>
 
 {{-- Kartu statistik --}}

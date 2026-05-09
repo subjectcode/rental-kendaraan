@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rental Kendaraan - Kelompok 4</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/[email protected]/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -52,12 +53,7 @@
     </main>
 
     <footer class="text-center text-sm text-slate-500 py-6 border-t bg-white">
-        &copy; {{ date('Y') }} Rental Kendaraan - Kelompok 4 |
-        Laravel + PHP + MySQL |
-        <form action="{{ route('reset') }}" method="POST" class="inline" onsubmit="return confirm('Reset semua data ke kondisi awal?')">
-            @csrf
-            <button class="text-red-600 hover:underline text-xs">Reset Data</button>
-        </form>
+        &copy; {{ date('Y') }} Rental Kendaraan - Kelompok 4
     </footer>
 </body>
 </html>

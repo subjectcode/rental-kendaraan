@@ -2,28 +2,28 @@
 
 @section('content')
 <div class="flex justify-between items-center mb-6">
-    <div><h1 class="text-3xl font-bold">Data Transaksi</h1><p class="text-slate-500">Daftar transaksi sewa</p></div>
-    <a href="{{ route('transaksi.create') }}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"><i class="bi bi-plus-lg mr-1"></i>Sewa Baru</a>
+    <div><h1 class="text-3xl font-bold"><i class="fas fa-car mr-2"></i>Data Transaksi</h1><p class="text-slate-500">Daftar transaksi sewa</p></div>
+    <a href="{{ route('transaksi.create') }}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow-sm transition-colors"><i class="fas fa-plus mr-1"></i>Sewa Baru</a>
 </div>
-<div class="bg-white rounded-lg shadow overflow-hidden">
+<div class="bg-white rounded-lg shadow overflow-hidden border">
     <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+        <thead class="bg-slate-50 text-slate-600 uppercase text-xs border-b">
             <tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Pelanggan</th><th class="px-4 py-3 text-left">Kendaraan</th><th class="px-4 py-3 text-left">Tgl Sewa</th><th class="px-4 py-3 text-left">Lama</th><th class="px-4 py-3 text-left">Total</th><th class="px-4 py-3 text-left">Status</th><th class="px-4 py-3 text-center">Aksi</th></tr>
         </thead>
         <tbody class="divide-y">
             @forelse($data as $t)
-                <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 font-medium" title="{{ $t->id_transaksi }}">#{{ substr($t->id_transaksi, 0, 8) }}</td>
-                    <td class="px-4 py-3"><div class="font-medium">{{ $t->pelanggan->nama ?? '-' }}</div><div class="text-xs text-slate-500">{{ $t->pelanggan->no_hp ?? '' }}</div></td>
-                    <td class="px-4 py-3"><div class="font-medium">{{ $t->kendaraan->nama_kendaraan ?? '-' }}</div><div class="text-xs text-slate-500">{{ $t->kendaraan->merk ?? '' }} - {{ $t->kendaraan->jenis ?? '' }}</div></td>
-                    <td class="px-4 py-3">{{ $t->tgl_sewa }}</td>
-                    <td class="px-4 py-3">{{ $t->lama_sewa }} hari</td>
-                    <td class="px-4 py-3 font-medium">Rp {{ number_format($t->total_bayar, 0, ',', '.') }}</td>
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3 font-medium text-slate-400" title="{{ $t->id_transaksi }}">#{{ substr($t->id_transaksi, 0, 8) }}</td>
+                    <td class="px-4 py-3"><div class="font-bold text-slate-700">{{ $t->pelanggan->nama ?? '-' }}</div><div class="text-xs text-slate-500">{{ $t->pelanggan->no_hp ?? '' }}</div></td>
+                    <td class="px-4 py-3"><div class="font-bold text-slate-700">{{ $t->kendaraan->nama_kendaraan ?? '-' }}</div><div class="text-xs text-slate-500">{{ $t->kendaraan->merk ?? '' }} - {{ $t->kendaraan->jenis ?? '' }}</div></td>
+                    <td class="px-4 py-3 text-slate-600">{{ $t->tgl_sewa }}</td>
+                    <td class="px-4 py-3 text-slate-600">{{ $t->lama_sewa }} hari</td>
+                    <td class="px-4 py-3 font-bold text-blue-700">Rp {{ number_format($t->total_bayar, 0, ',', '.') }}</td>
                     <td class="px-4 py-3">
                         @if($t->status_pembayaran === 'lunas')
-                            <span class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-700">Lunas</span>
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 border border-green-200"><i class="fas fa-check-circle mr-1"></i>Lunas</span>
                         @else
-                            <span class="px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">Belum Lunas</span>
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700 border border-orange-200"><i class="fas fa-clock mr-1"></i>Belum Lunas</span>
                         @endif
                     </td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">
@@ -53,8 +53,11 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="text-center py-10 text-slate-500"><i class="bi bi-inbox text-3xl block mb-2"></i>Belum ada transaksi</td></tr>
+                <tr><td colspan="8" class="text-center py-12 text-slate-500"><i class="fas fa-receipt text-4xl block mb-3 opacity-20"></i>Belum ada transaksi</td></tr>
             @endforelse
+        </tbody>
+    </table>
+</div>
         </tbody>
     </table>
 </div>
